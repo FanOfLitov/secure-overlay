@@ -1,12 +1,17 @@
-package ru.secureoverlay.node;
+package ru.secureoverlay.secure_overlay.node;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
-import ru.secureoverlay.transport.TcpClient;
-import ru.secureoverlay.transport.TcpServer;
+import ru.secureoverlay.secure_overlay.transport.TcpClient;
+import ru.secureoverlay.secure_overlay.transport.TcpServer;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
 @Component
+@ConditionalOnProperty(
+        name = "overlay.enabled",
+        havingValue = "true"
+)
 public class NetworkDemoRunner implements CommandLineRunner {
 
     @Value("${overlay.mode:server}")

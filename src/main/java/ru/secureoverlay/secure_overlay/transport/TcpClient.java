@@ -1,4 +1,4 @@
-package ru.secureoverlay.transport;
+package ru.secureoverlay.secure_overlay.transport;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
