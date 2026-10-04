@@ -1,61 +1,103 @@
 package ru.secureoverlay.secure_overlay.transport;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.nio.charset.StandardCharsets;
+import java.net.SocketException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class TcpServer {
 
     private final int port;
+
+    private final ExecutorService executor =
+            Executors.newFixedThreadPool(4);
+
+    private volatile boolean running;
+
+    private ServerSocket serverSocket;
 
     public TcpServer(int port) {
         this.port = port;
     }
 
     public void start() {
-        System.out.println("[SERVER] Starting TCP server on port " + port);
 
-        try (ServerSocket serverSocket = new ServerSocket(port)) {
+        running = true;
 
-            System.out.println("[SERVER] Waiting for connection...");
+        System.out.println(
+                "[SERVER] Starting TCP server on port " + port
+        );
 
-            try (Socket clientSocket = serverSocket.accept();
-                 BufferedReader reader = new BufferedReader(
-                         new InputStreamReader(
-                                 clientSocket.getInputStream(),
-                                 StandardCharsets.UTF_8
-                         )
-                 );
-                 BufferedWriter writer = new BufferedWriter(
-                         new OutputStreamWriter(
-                                 clientSocket.getOutputStream(),
-                                 StandardCharsets.UTF_8
-                         )
-                 )) {
+        try {
 
-                System.out.println(
-                        "[SERVER] Client connected: "
-                                + clientSocket.getRemoteSocketAddress()
-                );
+            serverSocket = new ServerSocket(port);
 
-                String message = reader.readLine();
+            System.out.println(
+                    "[SERVER] Waiting for connections..."
+            );
 
-                System.out.println("[SERVER] Received: " + message);
+            while (running) {
 
-                writer.write("WORLD");
-                writer.newLine();
-                writer.flush();
+                try {
 
-                System.out.println("[SERVER] Sent: WORLD");
+                    Socket clientSocket =
+                            serverSocket.accept();
+
+                    System.out.println(
+                            "[SERVER] Accepted connection from "
+                                    + clientSocket.getRemoteSocketAddress()
+                    );
+
+                    ConnectionHandler handler =
+                            new ConnectionHandler(clientSocket);
+
+                    executor.submit(handler);
+
+                } catch (SocketException e) {
+
+                    if (running) {
+                        throw e;
+                    }
+                }
             }
 
         } catch (IOException e) {
-            System.err.println("[SERVER] Network error: " + e.getMessage());
+
+            if (running) {
+                System.err.println(
+                        "[SERVER] Network error: "
+                                + e.getMessage()
+                );
+            }
+
+        } finally {
+
+            stop();
         }
+    }
+
+    public void stop() {
+
+        running = false;
+
+        if (serverSocket != null
+                && !serverSocket.isClosed()) {
+
+            try {
+                serverSocket.close();
+            } catch (IOException e) {
+
+                System.err.println(
+                        "[SERVER] Error while closing server socket: "
+                                + e.getMessage()
+                );
+            }
+        }
+
+        executor.shutdown();
+
+        System.out.println("[SERVER] Stopped");
     }
 }
