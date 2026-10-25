@@ -5,7 +5,7 @@ public enum FrameType {
     PING(1),
     PONG(2),
 
-    FIND_NODE_REQUEST(5),
+    FIND_NODE_REQUEST(3),
     FIND_NODE_RESPONSE(4),
 
     STORE_REQUEST(5),
@@ -20,6 +20,7 @@ public enum FrameType {
 
     TUNNEL_DATA(12),
     TUNNEL_ACK(13),
+    TUNNEL_CLOSE(14),
     APP_MESSAGE(15),
     APP_ACK(16),
 

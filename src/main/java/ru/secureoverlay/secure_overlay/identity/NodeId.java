@@ -58,6 +58,23 @@ public class NodeId {
 
             return Arrays.hashCode(value);
         }
+
+    public static NodeId fromHex(String hex){
+        if(hex==null){
+            throw new IllegalArgumentException(
+                    "NodeId hex cannot be null"
+            );
+        }
+
+        byte[] bytes;
+
+        try{
+            bytes =HexFormat.of().parseHex(hex);
+        } catch(IllegalArgumentException e){
+            throw new IllegalArgumentException("Invalid NodeId hex", e);
+        }
+        return new NodeId(bytes);
+    }
     }
 
 

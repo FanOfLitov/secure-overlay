@@ -1,6 +1,8 @@
 package ru.secureoverlay.secure_overlay.transport;
 
 import org.junit.jupiter.api.Test;
+import ru.secureoverlay.secure_overlay.dht.RoutingTable;
+import ru.secureoverlay.secure_overlay.identity.NodeId;
 import ru.secureoverlay.secure_overlay.protocol.Frame;
 import ru.secureoverlay.secure_overlay.protocol.FrameDecoder;
 import ru.secureoverlay.secure_overlay.protocol.FrameEncoder;
@@ -14,13 +16,27 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class TcpServerTest {
 
     @Test
-    void shouldHandleSeveralClients()
-            throws Exception {
+    void shouldHandleSeveralClients() throws Exception {
 
         int port = 9100;
 
+        byte[] localBytes =
+                new byte[NodeId.LENGTH_BYTES];
+
+        NodeId localNodeId =
+                new NodeId(localBytes);
+
+        RoutingTable routingTable =
+                new RoutingTable(
+                        localNodeId,
+                        3
+                );
+
         TcpServer server =
-                new TcpServer(port);
+                new TcpServer(
+                        port,
+                        routingTable
+                );
 
         Thread serverThread =
                 new Thread(server::start);

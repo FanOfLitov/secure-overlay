@@ -18,7 +18,11 @@ repositories {
 }
 
 dependencies {
+
+	implementation("com.fasterxml.jackson.core:jackson-databind")
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
+	implementation("org.bouncycastle:bcprov-jdk18on:1.86")
+	implementation("org.bouncycastle:bcpkix-jdk18on:1.86")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")
 	testImplementation("org.springframework.boot:spring-boot-starter-validation-test")

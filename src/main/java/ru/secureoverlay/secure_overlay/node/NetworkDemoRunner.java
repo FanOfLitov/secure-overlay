@@ -7,6 +7,13 @@ import ru.secureoverlay.secure_overlay.transport.TcpClient;
 import ru.secureoverlay.secure_overlay.transport.TcpServer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 
+import java.nio.file.Path;
+
+import ru.secureoverlay.secure_overlay.dht.RoutingTable;
+import ru.secureoverlay.secure_overlay.identity.IdentityService;
+import ru.secureoverlay.secure_overlay.identity.NodeIdentity;
+
+
 @Component
 @ConditionalOnProperty(
         name = "overlay.enabled",
@@ -28,7 +35,28 @@ public class NetworkDemoRunner implements CommandLineRunner {
 
         if ("server".equalsIgnoreCase(mode)) {
 
-            TcpServer server = new TcpServer(port);
+            IdentityService identityService =
+                    new IdentityService();
+
+            NodeIdentity identity =
+                    identityService.loadOrCreate(
+                            Path.of(
+                                    "data/node-" + port
+                            )
+                    );
+
+            RoutingTable routingTable =
+                    new RoutingTable(
+                            identity.nodeId(),
+                            3
+                    );
+
+            TcpServer server =
+                    new TcpServer(
+                            port,
+                            routingTable
+                    );
+
             server.start();
 
         } else if ("client".equalsIgnoreCase(mode)) {

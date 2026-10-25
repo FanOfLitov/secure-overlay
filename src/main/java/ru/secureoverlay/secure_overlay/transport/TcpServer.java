@@ -1,5 +1,9 @@
 package ru.secureoverlay.secure_overlay.transport;
 
+import ru.secureoverlay.secure_overlay.dht.RoutingTable;
+import ru.secureoverlay.secure_overlay.dht.storage.DhtStorageService;
+import ru.secureoverlay.secure_overlay.dht.storage.DhtStore;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -7,20 +11,64 @@ import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+
+import ru.secureoverlay.secure_overlay.security.ReplayGuard;
+
+import javax.net.ServerSocketFactory;
+import javax.net.ssl.SSLServerSocket;
+import java.time.Duration;
 public class TcpServer {
 
     private final int port;
+    private final RoutingTable routingTable;
+    private final DhtStore store;
 
-    private final ExecutorService executor =
-            Executors.newFixedThreadPool(4);
+    private final ExecutorService executor = Executors.newFixedThreadPool(4);
 
     private volatile boolean running;
 
     private ServerSocket serverSocket;
 
-    public TcpServer(int port) {
-        this.port = port;
+    private final ServerSocketFactory serverSocketFactory;
+
+    private final ReplayGuard replayGuard =
+            new ReplayGuard(
+                    Duration.ofMinutes(5)
+            );
+
+    public TcpServer(
+            int port,
+            RoutingTable routingTable
+    ) {
+
+        this(
+                port,
+                routingTable,
+                ServerSocketFactory
+                        .getDefault()
+        );
     }
+
+    public TcpServer(
+            int port,
+            RoutingTable routingTable,
+            ServerSocketFactory serverSocketFactory
+    ) {
+
+        this.port =
+                port;
+
+        this.routingTable =
+                routingTable;
+
+        this.store =
+                new DhtStore();
+
+        this.serverSocketFactory =
+                serverSocketFactory;
+    }
+
+
 
     public void start() {
 
@@ -32,7 +80,34 @@ public class TcpServer {
 
         try {
 
-            serverSocket = new ServerSocket(port);
+            serverSocket =
+                    serverSocketFactory
+                            .createServerSocket(
+                                    port
+                            );
+
+            if (serverSocket
+                    instanceof SSLServerSocket sslServerSocket) {
+
+                sslServerSocket.setEnabledProtocols(
+                        new String[]{
+                                "TLSv1.3"
+                        }
+                );
+
+                /*
+                 * Вот здесь включается mutual TLS:
+                 * сервер ОБЯЗАТЕЛЬНО требует
+                 * клиентский сертификат.
+                 */
+                sslServerSocket.setNeedClientAuth(
+                        true
+                );
+            }
+
+
+
+
 
             System.out.println(
                     "[SERVER] Waiting for connections..."
@@ -50,10 +125,23 @@ public class TcpServer {
                                     + clientSocket.getRemoteSocketAddress()
                     );
 
-                    ConnectionHandler handler =
-                            new ConnectionHandler(clientSocket);
+                    DhtStorageService storageService =
+                            new DhtStorageService(
+                                    store,
+                                    routingTable,
+                                    3
+                            );
 
-                    executor.submit(handler);
+                    executor.submit(
+                            new ConnectionHandler(
+                                    clientSocket,
+                                    routingTable,
+                                    storageService
+                            )
+                    );
+
+
+
 
                 } catch (SocketException e) {
 
@@ -99,5 +187,8 @@ public class TcpServer {
         executor.shutdown();
 
         System.out.println("[SERVER] Stopped");
+    }
+    public DhtStore getStore() {
+        return store;
     }
 }
