@@ -35,3 +35,19 @@ out/
 
 ### VS Code ###
 .vscode/
+
+
+.gradle/
+build/
+.idea/
+*.iml
+
+.venv/
+__pycache__/
+*.pyc
+
+identity-private.key
+identity-public.key
+
+**/identity-private.key
+**/identity-public.key

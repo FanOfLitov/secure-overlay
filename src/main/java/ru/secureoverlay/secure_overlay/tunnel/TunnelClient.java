@@ -135,4 +135,27 @@ public class TunnelClient {
                 request
         );
     }
+
+    public TunnelBuildMetric buildMeasured(
+            List<Contact> route
+    ) throws Exception {
+
+        long started =
+                System.nanoTime();
+
+        BuiltTunnel tunnel =
+                build(route);
+
+        long elapsedMs =
+                (
+                        System.nanoTime()
+                                - started
+                )
+                        / 1_000_000;
+
+        return new TunnelBuildMetric(
+                tunnel,
+                elapsedMs
+        );
+    }
 }

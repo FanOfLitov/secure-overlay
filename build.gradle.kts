@@ -46,3 +46,18 @@ tasks.register<JavaExec>("runExperiment") {
 		"ru.secureoverlay.secure_overlay.experiment.ExperimentRunner"
 	)
 }
+
+tasks.register<JavaExec>("runTunnelExperiment") {
+
+	group = "application"
+
+	description =
+		"Run Secure Overlay tunnel experiments"
+
+	classpath =
+		sourceSets["main"].runtimeClasspath
+
+	mainClass.set(
+		"ru.secureoverlay.secure_overlay.experiment.TunnelExperimentRunner"
+	)
+}
