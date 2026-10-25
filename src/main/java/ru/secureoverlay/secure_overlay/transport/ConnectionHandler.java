@@ -18,10 +18,14 @@ import ru.secureoverlay.secure_overlay.protocol.FrameType;
 import ru.secureoverlay.secure_overlay.protocol.JsonPayloadCodec;
 
 import ru.secureoverlay.secure_overlay.security.ReplayGuard;
+import ru.secureoverlay.secure_overlay.tunnel.TunnelService;
 
+import ru.secureoverlay.secure_overlay.tunnel.TunnelStateStore;
+import ru.secureoverlay.secure_overlay.tunnel.rpc.*;
 import java.io.IOException;
 import java.net.Socket;
 import java.time.Duration;
+import java.util.UUID;
 
 public class ConnectionHandler
         implements Runnable {
@@ -39,20 +43,21 @@ public class ConnectionHandler
 
     private final ReplayGuard replayGuard;
 
+    private final TunnelService tunnelService;
+
     public ConnectionHandler(
             Socket socket,
             RoutingTable routingTable,
             DhtStorageService storageService,
-            ReplayGuard replayGuard
+            ReplayGuard replayGuard,
+            TunnelService tunnelService
     ) {
 
         this.socket = socket;
-
         this.routingTable = routingTable;
-
         this.storageService = storageService;
-
-        this.replayGuard=replayGuard;
+        this.replayGuard = replayGuard;
+        this.tunnelService = tunnelService;
     }
     public ConnectionHandler(
             Socket socket,
@@ -65,7 +70,11 @@ public class ConnectionHandler
                 routingTable,
                 storageService,
                 new ReplayGuard(
-                        Duration.ofMinutes(5)
+                        java.time.Duration.ofMinutes(5)
+                ),
+                new TunnelService(
+                        new TunnelRpcClient(),
+                        new TunnelStateStore()
                 )
         );
     }
@@ -146,6 +155,28 @@ public class ConnectionHandler
                                 encoder,
                                 jsonCodec
                         );
+
+                case TUNNEL_BUILD ->
+                        handleTunnelBuild(
+                                request,
+                                encoder,
+                                jsonCodec
+                        );
+
+                case TUNNEL_DATA ->
+                        handleTunnelData(
+                                request,
+                                encoder,
+                                jsonCodec
+                        );
+
+                case TUNNEL_CLOSE ->
+                        handleTunnelClose(
+                                request,
+                                encoder,
+                                jsonCodec
+                        );
+
 
 
                 default ->
@@ -378,5 +409,119 @@ public class ConnectionHandler
 
         socket.getOutputStream()
                 .flush();
+    }
+
+    private void handleTunnelBuild(
+            Frame request,
+            FrameEncoder encoder,
+            JsonPayloadCodec codec
+    ) throws IOException {
+
+        TunnelBuildRequest build =
+                codec.decode(
+                        request.payload(),
+                        TunnelBuildRequest.class
+                );
+
+
+        TunnelBuildResponse response =
+                tunnelService.handleBuild(
+                        build
+                );
+
+
+        FrameType type =
+                response.built()
+                        ? FrameType.TUNNEL_BUILD_OK
+                        : FrameType.TUNNEL_BUILD_FAIL;
+
+
+        send(
+                new Frame(
+                        SUPPORTED_VERSION,
+                        type,
+                        (short) 0,
+                        request.requestId(),
+                        codec.encode(
+                                response
+                        )
+                ),
+                encoder
+        );
+    }
+
+
+    private void handleTunnelData(
+            Frame request,
+            FrameEncoder encoder,
+            JsonPayloadCodec codec
+    ) throws IOException {
+
+        TunnelDataRequest data =
+                codec.decode(
+                        request.payload(),
+                        TunnelDataRequest.class
+                );
+
+
+        TunnelAck ack =
+                tunnelService.handleData(
+                        data
+                );
+
+
+        send(
+                new Frame(
+                        SUPPORTED_VERSION,
+                        FrameType.TUNNEL_ACK,
+                        (short) 0,
+                        request.requestId(),
+                        codec.encode(
+                                ack
+                        )
+                ),
+                encoder
+        );
+    }
+
+
+    private void handleTunnelClose(
+            Frame request,
+            FrameEncoder encoder,
+            JsonPayloadCodec codec
+    ) throws IOException {
+
+        UUID tunnelId =
+                codec.decode(
+                        request.payload(),
+                        UUID.class
+                );
+
+
+        tunnelService.close(
+                tunnelId
+        );
+
+
+        TunnelAck ack =
+                new TunnelAck(
+                        tunnelId,
+                        true,
+                        "CLOSED"
+                );
+
+
+        send(
+                new Frame(
+                        SUPPORTED_VERSION,
+                        FrameType.TUNNEL_ACK,
+                        (short) 0,
+                        request.requestId(),
+                        codec.encode(
+                                ack
+                        )
+                ),
+                encoder
+        );
     }
 }

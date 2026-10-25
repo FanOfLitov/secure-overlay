@@ -16,11 +16,12 @@ public enum FrameType {
 
     TUNNEL_BUILD(9),
     TUNNEL_BUILD_OK(10),
-    TUNNEL_BUILD_FALL(11),
+    TUNNEL_BUILD_FAIL(11),
 
     TUNNEL_DATA(12),
     TUNNEL_ACK(13),
     TUNNEL_CLOSE(14),
+
     APP_MESSAGE(15),
     APP_ACK(16),
 
@@ -28,22 +29,26 @@ public enum FrameType {
 
     private final int code;
 
-    FrameType(int code){
-        this.code=code;
+    FrameType(int code) {
+        this.code = code;
     }
 
-    public int getCode(){
+    public int getCode() {
         return code;
     }
 
-    public static FrameType fromCode(int code){
-        for(FrameType type :values()){
-            if(type.code==code){
+    public static FrameType fromCode(int code) {
+
+        for (FrameType type : values()) {
+
+            if (type.code == code) {
                 return type;
             }
         }
 
-        throw new IllegalArgumentException("Unknown frame type " + code);
+        throw new IllegalArgumentException(
+                "Unknown frame type code: " + code
+        );
     }
-
 }
+

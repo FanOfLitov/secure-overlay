@@ -11,7 +11,8 @@ import java.net.SocketException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-
+import ru.secureoverlay.secure_overlay.tunnel.TunnelService;
+import ru.secureoverlay.secure_overlay.tunnel.TunnelStateStore;
 import ru.secureoverlay.secure_overlay.security.ReplayGuard;
 
 import javax.net.ServerSocketFactory;
@@ -30,6 +31,15 @@ public class TcpServer {
     private ServerSocket serverSocket;
 
     private final ServerSocketFactory serverSocketFactory;
+    private final TunnelStateStore tunnelStateStore = new TunnelStateStore();
+    TunnelRpcClient tunnelRpcClient = new TunnelRpcClient();
+    TunnelService tunnelService = new TunnelService(
+                    tunnelRpcClient,
+                    tunnelStateStore
+            );
+
+
+
 
     private final ReplayGuard replayGuard =
             new ReplayGuard(
@@ -47,6 +57,13 @@ public class TcpServer {
                 ServerSocketFactory
                         .getDefault()
         );
+
+
+    }
+
+    public TunnelStateStore getTunnelStateStore() {
+
+        return tunnelStateStore;
     }
 
     public TcpServer(
@@ -55,8 +72,7 @@ public class TcpServer {
             ServerSocketFactory serverSocketFactory
     ) {
 
-        this.port =
-                port;
+        this.port = port;
 
         this.routingTable =
                 routingTable;
@@ -132,13 +148,27 @@ public class TcpServer {
                                     3
                             );
 
+                    TunnelRpcClient tunnelRpcClient =
+                            new TunnelRpcClient();
+
+                    TunnelService tunnelService =
+                            new TunnelService(
+                                    tunnelRpcClient,
+                                    tunnelStateStore
+                            );
+
                     executor.submit(
                             new ConnectionHandler(
                                     clientSocket,
                                     routingTable,
-                                    storageService
+                                    storageService,
+                                    replayGuard,
+                                    tunnelService
                             )
                     );
+
+
+
 
 
 
