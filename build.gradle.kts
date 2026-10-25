@@ -32,3 +32,17 @@ dependencies {
 tasks.withType<Test> {
 	useJUnitPlatform()
 }
+tasks.register<JavaExec>("runExperiment") {
+
+	group = "application"
+
+	description =
+		"Run Secure Overlay scaling experiments"
+
+	classpath =
+		sourceSets["main"].runtimeClasspath
+
+	mainClass.set(
+		"ru.secureoverlay.secure_overlay.experiment.ExperimentRunner"
+	)
+}
